@@ -14,7 +14,7 @@ import { clavesExistentes } from "../dominio/medidas.ts";
 import type { Datos, FechaCivil } from "../dominio/tipos.ts";
 import { aHash, esAncla, esNavegable, idDeVista, resolverDireccion } from "./enrutador.ts";
 import type { AvisoDeDireccion, Direccion, Ruta, RutaNavegable } from "./enrutador.ts";
-import { esRaiz, migasDe, padreDe, seccionDe } from "./navegacion.ts";
+import { esRaiz, llegoDesdeComprobantes, migasDe, padreDe, seccionDe } from "./navegacion.ts";
 import type { PasoDeMigas, Seccion } from "./navegacion.ts";
 import type { Ubicacion } from "./ubicacion.ts";
 
@@ -63,7 +63,9 @@ export interface EstadoDeDireccion {
   readonly migas: readonly PasoDeMigas[];
   /** La pantalla de la que cuelga esta (la miga anterior, o el Resumen). */
   readonly padre: RutaNavegable;
-  /** A dónde lleva «Atrás»: la pantalla anterior del recorrido si la hay y es una ruta válida; si no, el padre. */
+  /** La pantalla anterior del recorrido si la hay y es una ruta válida; `null` si no hay (un enlace directo) o venía de un error. */
+  readonly anterior: RutaNavegable | null;
+  /** A dónde lleva «Atrás»: la pantalla anterior del recorrido si la hay (`anterior`); si no, el padre. */
   readonly destinoDeAtras: RutaNavegable;
   /** Las direcciones visitadas, de la más vieja a la actual (hasta 60). «Atrás» saca la última; una dirección nueva la suma. */
   readonly recorrido: readonly string[];
@@ -119,7 +121,12 @@ export function crearEstadoDeDireccion(datos: Datos, ubicacion: Ubicacion, opcio
   // `$derived` y no un getter sobre `direccion`: un efecto que lee la vista (o la sección) solo se vuelve a correr si cambia el valor, no con cada dirección
   // nueva. Es lo que impide que escribir en el buscador mueva el foco (R2).
   const vista = $derived(idDeVista(direccion.ruta));
-  const seccion = $derived(seccionDe(direccion.ruta));
+  // Un comprobante cuelga de la lista de la que se salió (Comprobantes) o, si no hay origen (un enlace directo), de Clientes. La sección que marca el menú y
+  // las migas salen de lo mismo, así que no pueden contradecirse. Es un booleano: escribir en un campo (que cambia el último elemento del recorrido) no lo mueve.
+  const desdeComprobantes = $derived(
+    direccion.ruta.tipo === "comprobante" && llegoDesdeComprobantes(recorrido.slice(0, -1).map((hash) => resolverDireccion(hash, datos).ruta)),
+  );
+  const seccion = $derived(seccionDe(direccion.ruta, desdeComprobantes));
   const raiz = $derived(esRaiz(direccion.ruta));
 
   /** Suma la dirección actual al recorrido, o saca la última si se volvió a la anterior. */
@@ -192,7 +199,13 @@ export function crearEstadoDeDireccion(datos: Datos, ubicacion: Ubicacion, opcio
 
   /** El padre de la ruta actual (el Resumen si la ruta es un error). */
   function padre(): RutaNavegable {
-    return padreDe(direccion.ruta, datos, direccion.corte);
+    return padreDe(direccion.ruta, datos, direccion.corte, desdeComprobantes);
+  }
+
+  /** La pantalla anterior del recorrido si la hay y es una ruta válida; si no (un enlace directo, o venía de un error), `null`. */
+  function anterior(): RutaNavegable | null {
+    const previa = recorrido.length > 1 ? resolverDireccion(recorrido.at(-2) ?? "", datos).ruta : null;
+    return previa !== null && esNavegable(previa) ? previa : null;
   }
 
   return {
@@ -221,14 +234,16 @@ export function crearEstadoDeDireccion(datos: Datos, ubicacion: Ubicacion, opcio
       return raiz;
     },
     get migas() {
-      return migasDe(direccion.ruta, datos, direccion.corte);
+      return migasDe(direccion.ruta, datos, direccion.corte, desdeComprobantes);
     },
     get padre() {
       return padre();
     },
+    get anterior() {
+      return anterior();
+    },
     get destinoDeAtras() {
-      const anterior = recorrido.length > 1 ? resolverDireccion(recorrido.at(-2) ?? "", datos).ruta : null;
-      return anterior !== null && esNavegable(anterior) ? anterior : padre();
+      return anterior() ?? padre();
     },
     get recorrido() {
       return recorrido;

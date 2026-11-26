@@ -26,8 +26,11 @@ export interface MemoriaDeVista {
    * Dos rutas son la misma pantalla si tienen el mismo `idDeVista` (cambiar el filtro, la búsqueda o el corte no cambia de pantalla).
    */
   filaElegidaEn(ruta: Ruta): FilaElegida | null;
-  /** Recuerda `fila` como la última abierta; `desde` es la pantalla en la que estaba quien la abrió (la anterior del recorrido). */
-  elegirFila(fila: FilaElegida, desde: Ruta): void;
+  /**
+   * Recuerda `fila` como la última abierta; `desde` es la pantalla en la que estaba quien la abrió (la anterior del recorrido). Con `null` (se entró con un
+   * enlace directo: no se abrió desde ninguna tabla) no queda ninguna fila marcada.
+   */
+  elegirFila(fila: FilaElegida, desde: Ruta | null): void;
   vaciarFila(): void;
   /** La solapa de ese cliente; `saldo` si no se eligió otra. */
   solapaDe(clienteId: string): SolapaDeCliente;
@@ -55,7 +58,7 @@ export function crearMemoriaDeVista(): MemoriaDeVista {
       return abierta !== null && abierta.desde === idDeVista(ruta) ? abierta.fila : null;
     },
     elegirFila(nueva, desde) {
-      abierta = { fila: nueva, desde: idDeVista(desde) };
+      abierta = desde === null ? null : { fila: nueva, desde: idDeVista(desde) };
     },
     vaciarFila() {
       abierta = null;

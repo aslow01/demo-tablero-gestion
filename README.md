@@ -4,7 +4,7 @@
 
 A receivables dashboard for a fictional fleet-services company: who owes, how much and since when, as of a cut-off date you can change. Every underlined amount drills down to the invoices behind it. All data is fictional and generated from a fixed seed; it runs entirely in the browser (no server, no login, no file uploads).
 
-Stack: Svelte 5, Vite and TypeScript, with a single direct production dependency (`svelte`). To run it: `npm install`, then `npm run dev` (development server) and `npm test` (2,240 tests in 59 files).
+Stack: Svelte 5, Vite and TypeScript, with a single direct production dependency (`svelte`). To run it: `npm install`, then `npm run dev` (development server) and `npm test` (2,262 tests in 59 files).
 
 Live demo: <https://tablero.matiasormeno.com.ar>
 
@@ -95,9 +95,9 @@ Node 24. `npm ci` y después:
 
 | Qué | Resultado |
 | --- | --- |
-| Pruebas | 2.240 en 59 archivos, en verde también en UTC, Asia/Tokyo y America/Los_Angeles |
+| Pruebas | 2.262 en 59 archivos, en verde también en UTC, Asia/Tokyo y America/Los_Angeles |
 | Mutaciones plantadas | 60 de 60 detectadas (corrida del 26/11/2026: 6 min 49 s; ver `docs/registro.md`) |
-| JavaScript | 81,8 kB con gzip (tope: 100 kB), con una sola dependencia directa de producción (`svelte`) |
+| JavaScript | 82,0 kB con gzip (tope: 100 kB), con una sola dependencia directa de producción (`svelte`) |
 | CSS | 13,6 kB con gzip |
 | Tipografías | 201 kB (`woff2`, alojadas en el propio sitio; licencias OFL junto a los archivos) |
 | Contraste | 206 mediciones, 0 fallan, 6 justas |

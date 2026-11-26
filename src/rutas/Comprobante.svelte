@@ -24,9 +24,9 @@
   const vista = $derived(vistaComprobante(app.datos, corte, ruta.comprobanteId));
   const clienteId = $derived(vista.datos.clienteId);
 
-  // Pasa a ser la «fila elegida» de la pantalla desde la que se abrió (la anterior del recorrido): al volver ahí queda marcada.
+  // Pasa a ser la «fila elegida» de la pantalla desde la que se abrió (la anterior del recorrido): al volver ahí queda marcada. Con un enlace directo no hay ninguna.
   $effect(() => {
-    app.memoria.elegirFila({ comprobanteId: ruta.comprobanteId, clienteId }, untrack(() => app.direccion.destinoDeAtras));
+    app.memoria.elegirFila({ comprobanteId: ruta.comprobanteId, clienteId }, untrack(() => app.direccion.anterior));
   });
 </script>
 

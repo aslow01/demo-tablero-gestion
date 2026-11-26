@@ -137,6 +137,39 @@ describe("memoria de la vista conectada a la dirección", () => {
     expect(app.memoria.filaElegidaEn(app.direccion.ruta)).toBeNull();
   });
 
+  it("una pantalla abierta con un enlace directo no marca una fila en la lista que está arriba de ella: nadie la abrió desde esa tabla", () => {
+    const app = lista(crearAplicacion(ubicacionEnMemoria("#/cliente/C05?corte=2026-10-31"), { cargar: cargaCorrecta }));
+    expect(app.direccion.anterior).toBeNull();
+    // Lo que hace la ficha del cliente al abrirse.
+    app.memoria.elegirFila({ clienteId: "C05" }, app.direccion.anterior);
+    app.direccion.atras(); // sin pantalla anterior va al padre (Clientes)
+    expect(app.direccion.ruta).toEqual({ tipo: "clientes" });
+    expect(app.memoria.filaElegidaEn(app.direccion.ruta)).toBeNull();
+  });
+
+  it("lo mismo con un comprobante: abierto con un enlace directo, no queda marcado en la tabla de su cliente", () => {
+    const app = lista(crearAplicacion(ubicacionEnMemoria(`#/comprobante/${datos.comprobantes[0]?.id}?corte=2026-10-31`), { cargar: cargaCorrecta }));
+    app.memoria.elegirFila({ comprobanteId: datos.comprobantes[0]?.id ?? "", clienteId: datos.comprobantes[0]?.clienteId ?? "" }, app.direccion.anterior);
+    app.direccion.atras();
+    expect(app.direccion.ruta.tipo).toBe("cliente");
+    expect(app.memoria.filaElegidaEn(app.direccion.ruta)).toBeNull();
+  });
+
+  it("abierta desde una pantalla de la aplicación sí queda marcada al volver: la anterior es la que se abrió", () => {
+    const app = lista(crearAplicacion(ubicacionEnMemoria("#/clientes?corte=2026-10-31"), { cargar: cargaCorrecta }));
+    app.direccion.ir({ tipo: "cliente", clienteId: "C05" });
+    expect(app.direccion.anterior).toEqual({ tipo: "clientes" });
+    app.memoria.elegirFila({ clienteId: "C05" }, app.direccion.anterior);
+    app.direccion.atras();
+    expect(app.memoria.filaElegidaEn(app.direccion.ruta)).toEqual({ clienteId: "C05" });
+  });
+
+  it("si la pantalla anterior era un error, tampoco hay fila marcada", () => {
+    const app = lista(crearAplicacion(ubicacionEnMemoria("#/nada?corte=2026-10-31"), { cargar: cargaCorrecta }));
+    app.direccion.ir({ tipo: "cliente", clienteId: "C05" });
+    expect(app.direccion.anterior).toBeNull();
+  });
+
   it("un ancla no cuenta como navegar", () => {
     const ubicacion = ubicacionEnMemoria("#/clientes?corte=2026-10-31");
     const app = lista(crearAplicacion(ubicacion, { cargar: cargaCorrecta }));

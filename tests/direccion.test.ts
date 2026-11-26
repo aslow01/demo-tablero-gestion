@@ -391,6 +391,17 @@ describe("«Atrás»: el recorrido de la sesión y el destino cuando no hay pant
     estado.ir({ tipo: "cliente", clienteId: "C05" });
     expect(estado.recorrido).toHaveLength(2);
     expect(estado.destinoDeAtras).toEqual({ tipo: "clientes" });
+    expect(estado.anterior).toBeNull();
+  });
+
+  it("`anterior` es la pantalla anterior real (con su filtro) y `null` si no la hay: un enlace directo no tiene origen", () => {
+    const { estado } = arrancar("#/cliente/C05?corte=2026-10-31");
+    expect(estado.anterior).toBeNull();
+    expect(estado.destinoDeAtras).toEqual(estado.padre);
+    estado.ir({ tipo: "comprobantes", tramo: "vencidos" });
+    estado.ir({ tipo: "cliente", clienteId: "C06" });
+    expect(estado.anterior).toEqual({ tipo: "comprobantes", tramo: "vencidos" });
+    expect(estado.destinoDeAtras).toEqual(estado.anterior);
   });
 
   it("ir a una pantalla y volver con «Atrás» deja el recorrido como estaba (no se acumula)", () => {
@@ -448,6 +459,62 @@ describe("lo que lee el marco de la navegación: sección, raíz, padre y migas"
     expect(estado.migas.map((p) => p.miga.que)).toEqual(["seccion", "desglose", "cliente"]);
     estado.ir({ tipo: "como-se-calcula" });
     expect([estado.seccion, estado.esRaiz]).toEqual([null, false]);
+  });
+
+  describe("un comprobante: la miga y el menú dicen lo mismo, y es por dónde se llegó", () => {
+    const id = T12.id("d30");
+    const primera = (estado: ReturnType<typeof arrancar>["estado"]) => estado.migas[0]?.miga;
+
+    it("desde Comprobantes: el menú marca Comprobantes, la miga empieza en Comprobantes y «Atrás» vuelve ahí", () => {
+      const { estado } = arrancar("#/comprobantes?corte=2026-10-31&tramo=vencidos");
+      estado.ir({ tipo: "comprobante", comprobanteId: id });
+      expect(estado.seccion).toBe("comprobantes");
+      expect(primera(estado)).toEqual({ que: "seccion", seccion: "comprobantes" });
+      expect(estado.padre).toEqual({ tipo: "comprobantes" });
+      expect(estado.destinoDeAtras).toEqual({ tipo: "comprobantes", tramo: "vencidos" });
+    });
+
+    it("con un enlace directo (sin origen): el menú marca Clientes y la miga empieza en Clientes, siempre igual", () => {
+      const { estado } = arrancar(`#/comprobante/${id}?corte=2026-10-31`);
+      expect(estado.seccion).toBe("clientes");
+      expect(primera(estado)).toEqual({ que: "seccion", seccion: "clientes" });
+      expect(estado.migas.map((p) => p.miga.que)).toEqual(["seccion", "cliente", "comprobante"]);
+    });
+
+    it("desde un cliente, un desglose o el Resumen: Clientes, como la miga", () => {
+      for (const origen of ["#/clientes?corte=2026-10-31", "#/resumen?corte=2026-10-31", "#/meses?corte=2026-10-31"]) {
+        const { estado } = arrancar(origen);
+        estado.ir({ tipo: "comprobante", comprobanteId: id });
+        expect(estado.seccion, origen).toBe("clientes");
+        expect(primera(estado), origen).toEqual({ que: "seccion", seccion: "clientes" });
+      }
+    });
+
+    it("pasar por el cliente del comprobante y abrir otro comprobante conserva el origen; la miga y el menú nunca se separan", () => {
+      const { estado } = arrancar("#/comprobantes?corte=2026-10-31");
+      estado.ir({ tipo: "comprobante", comprobanteId: id });
+      estado.ir({ tipo: "cliente", clienteId: "C05" });
+      expect(estado.seccion).toBe("clientes");
+      estado.ir({ tipo: "comprobante", comprobanteId: id });
+      expect([estado.seccion, primera(estado)]).toEqual(["comprobantes", { que: "seccion", seccion: "comprobantes" }]);
+    });
+
+    it("al volver con «Atrás» al listado o al cliente, cada pantalla vuelve a decir lo suyo", () => {
+      const { estado } = arrancar("#/comprobantes?corte=2026-10-31");
+      estado.ir({ tipo: "comprobante", comprobanteId: id });
+      estado.atras();
+      expect([estado.seccion, estado.ruta.tipo]).toEqual(["comprobantes", "comprobantes"]);
+      estado.ir({ tipo: "clientes" });
+      estado.ir({ tipo: "comprobante", comprobanteId: id });
+      expect(estado.seccion).toBe("clientes");
+    });
+
+    it("escribir en el buscador del listado (cambia la barra sin entrada nueva) no cambia de dónde se llegó", () => {
+      const { estado } = arrancar("#/comprobantes?corte=2026-10-31");
+      estado.reemplazar({ tipo: "comprobantes", q: "abc" });
+      estado.ir({ tipo: "comprobante", comprobanteId: id });
+      expect(estado.seccion).toBe("comprobantes");
+    });
   });
 
   it("con una ruta de error no hay sección y el padre es el Resumen", () => {

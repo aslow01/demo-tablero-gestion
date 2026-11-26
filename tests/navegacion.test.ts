@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CLAVES_DEL_CATALOGO } from "../src/lib/dominio/claves.ts";
 import type { Ruta, RutaNavegable } from "../src/lib/estado/enrutador.ts";
 import { aHash, resolverDireccion } from "../src/lib/estado/enrutador.ts";
-import { esRaiz, migasDe, ofreceAyudaEnLaBarra, padreDe, seccionDe, SECCIONES } from "../src/lib/estado/navegacion.ts";
+import { esRaiz, llegoDesdeComprobantes, migasDe, ofreceAyudaEnLaBarra, padreDe, seccionDe, SECCIONES } from "../src/lib/estado/navegacion.ts";
 import { fixtureT12 } from "./fixtures/casos.ts";
 
 const T12 = fixtureT12();
@@ -26,9 +26,22 @@ describe("seccionDe: qué pestaña queda marcada", () => {
     [{ tipo: "clientes", filtro: "revisar" }, "clientes"],
     [{ tipo: "meses" }, "meses"],
     [{ tipo: "cliente", clienteId: "C05" }, "clientes"],
-    [{ tipo: "comprobante", comprobanteId: "1-0003-00000001" }, "comprobantes"],
+    [{ tipo: "comprobante", comprobanteId: "1-0003-00000001" }, "clientes"],
   ] as const)("%j → %s", (ruta, seccion) => {
     expect(seccionDe(ruta)).toBe(seccion);
+  });
+
+  it("un comprobante cuelga de Clientes, igual que dice su miga; si se llegó desde Comprobantes, queda marcado Comprobantes", () => {
+    const ruta = { tipo: "comprobante", comprobanteId: idFactura } as const;
+    expect(seccionDe(ruta)).toBe("clientes");
+    expect(seccionDe(ruta, false)).toBe("clientes");
+    expect(seccionDe(ruta, true)).toBe("comprobantes");
+  });
+
+  it("el origen solo cambia al comprobante: lo demás no se mueve", () => {
+    for (const ruta of [resumen, clientes, meses, { tipo: "cliente", clienteId: "C05" }, { tipo: "desglose", clave: "mora" }, { tipo: "como-se-calcula" }] as const) {
+      expect(seccionDe(ruta, true), ruta.tipo).toBe(seccionDe(ruta));
+    }
   });
 
   it("un desglose de una medida del mes cuelga de Meses; el de cualquier otra medida, del Resumen", () => {
@@ -99,6 +112,25 @@ describe("migasDe: el camino hasta la pantalla, sin texto", () => {
     ]);
   });
 
+  it("un comprobante al que se llegó desde Comprobantes cuelga de Comprobantes: la miga dice por dónde se llegó, igual que el menú", () => {
+    const comprobante = { tipo: "comprobante", comprobanteId: idFactura } as const;
+    const desdeComprobantes = migasDe(comprobante, datos, corte, true);
+    expect(desdeComprobantes).toEqual([
+      { miga: { que: "seccion", seccion: "comprobantes" }, destino: { tipo: "comprobantes" } },
+      { miga: { que: "comprobante", comprobanteId: idFactura }, destino: null },
+    ]);
+    expect(desdeComprobantes[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante, true) });
+    // Sin origen (un enlace directo) o desde otro lado, la miga de siempre.
+    expect(migasDe(comprobante, datos, corte, false)).toEqual(migasDe(comprobante, datos, corte));
+    expect(migasDe(comprobante, datos, corte)[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante) });
+  });
+
+  it("el origen no cambia las migas de las demás pantallas", () => {
+    for (const ruta of [resumen, clientes, { tipo: "cliente", clienteId: "C05" }, { tipo: "desglose", clave: "mora", clienteId: "C05" }, { tipo: "como-se-calcula" }] as const) {
+      expect(migasDe(ruta, datos, corte, true), ruta.tipo).toEqual(migasDe(ruta, datos, corte));
+    }
+  });
+
   it("un comprobante que no está en los datos (una ruta armada a mano) no lanza: cuelga de Clientes", () => {
     expect(migasDe({ tipo: "comprobante", comprobanteId: "1-0003-99999999" }, datos, corte)).toEqual([
       { miga: { que: "seccion", seccion: "clientes" }, destino: clientes },
@@ -167,6 +199,10 @@ describe("padreDe: a dónde va «Atrás» cuando no hay una pantalla anterior", 
     expect(padreDe({ tipo: "desglose", clave: "iva-mes", mes: "2026-05" }, datos, corte)).toEqual(meses);
   });
 
+  it("un comprobante al que se llegó desde Comprobantes vuelve a Comprobantes", () => {
+    expect(padreDe({ tipo: "comprobante", comprobanteId: idFactura }, datos, corte, true)).toEqual({ tipo: "comprobantes" });
+  });
+
   it("el desglose de un cliente vuelve al desglose de todos, y conserva el mes", () => {
     expect(padreDe({ tipo: "desglose", clave: "mora", clienteId: "C05" }, datos, corte)).toEqual({ tipo: "desglose", clave: "mora" });
     expect(padreDe({ tipo: "desglose", clave: "iva-mes", clienteId: "C05", mes: "2026-05" }, datos, corte)).toEqual({ tipo: "desglose", clave: "iva-mes", mes: "2026-05" });
@@ -185,7 +221,38 @@ describe("padreDe: a dónde va «Atrás» cuando no hay una pantalla anterior", 
   });
 });
 
-describe("ofreceAyudaEnLaBarra: la barra del celular no repite «Cómo se calcula» cuando «Atrás» ya lleva ahí", () => {
+describe("llegoDesdeComprobantes: de dónde se llegó a un comprobante, mirando el recorrido", () => {
+  const comprobante: Ruta = { tipo: "comprobante", comprobanteId: idFactura };
+  const cliente: Ruta = { tipo: "cliente", clienteId: "C05" };
+  const lista: Ruta = { tipo: "comprobantes", tramo: "vencidos" };
+
+  it("la pantalla anterior es la lista de Comprobantes (con cualquier filtro): sí", () => {
+    expect(llegoDesdeComprobantes([resumen, lista])).toBe(true);
+    expect(llegoDesdeComprobantes([lista])).toBe(true);
+  });
+
+  it("sin pantalla anterior (un enlace directo) o desde otra pantalla: no", () => {
+    expect(llegoDesdeComprobantes([])).toBe(false);
+    expect(llegoDesdeComprobantes([resumen])).toBe(false);
+    expect(llegoDesdeComprobantes([lista, clientes])).toBe(false);
+    expect(llegoDesdeComprobantes([lista, { tipo: "desglose", clave: "mora" }])).toBe(false);
+    expect(llegoDesdeComprobantes([lista, { tipo: "como-se-calcula" }])).toBe(false);
+  });
+
+  it("pasar por un cliente u otro comprobante no cambia el origen: sigue siendo el de la lista de la que se salió", () => {
+    expect(llegoDesdeComprobantes([lista, comprobante])).toBe(true);
+    expect(llegoDesdeComprobantes([lista, comprobante, cliente])).toBe(true);
+    expect(llegoDesdeComprobantes([clientes, cliente, comprobante])).toBe(false);
+    expect(llegoDesdeComprobantes([lista, clientes, cliente])).toBe(false);
+  });
+
+  it("solo hay detalles antes (por ejemplo, la dirección con la que se arrancó era un cliente): no", () => {
+    expect(llegoDesdeComprobantes([cliente])).toBe(false);
+    expect(llegoDesdeComprobantes([cliente, comprobante])).toBe(false);
+  });
+});
+
+describe("ofreceAyudaEnLaBarra:la barra del celular no repite «Cómo se calcula» cuando «Atrás» ya lleva ahí", () => {
   it("en una pantalla raíz «Atrás» no se muestra, así que la ayuda siempre se ofrece", () => {
     expect(ofreceAyudaEnLaBarra(true, resumen)).toBe(true);
     expect(ofreceAyudaEnLaBarra(true, { tipo: "como-se-calcula" })).toBe(true);

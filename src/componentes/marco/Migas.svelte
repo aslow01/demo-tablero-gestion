@@ -1,13 +1,12 @@
 <!-- Migas de pan: el camino hasta la pantalla. Solo en escritorio (desde 64 rem); en el celular lo hace el botón «Atrás» de la barra de arriba. -->
 <script lang="ts">
   import type { AplicacionLista } from "../../lib/estado/aplicacion.svelte.ts";
-  import { migasDe } from "../../lib/estado/navegacion.ts";
   import { rotulosDeMigas } from "../../lib/vistas/rotulos.ts";
   import { TEXTO_MARCO } from "../textos-marco.ts";
 
   let { app }: { app: AplicacionLista } = $props();
 
-  const pasos = $derived(rotulosDeMigas(migasDe(app.direccion.ruta, app.datos, app.direccion.corte), app.datos, app.direccion.corte));
+  const pasos = $derived(rotulosDeMigas(app.direccion.migas, app.datos, app.direccion.corte));
 </script>
 
 <nav class="migas" aria-label={TEXTO_MARCO.migas}>

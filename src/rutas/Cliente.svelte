@@ -31,10 +31,10 @@
     const fila = app.memoria.filaElegidaEn(ruta);
     return fila?.clienteId === ruta.clienteId && fila.comprobanteId !== undefined ? fila.comprobanteId : null;
   });
-  // Esta ficha pasa a ser la «fila elegida» de la pantalla desde la que se abrió (la anterior del recorrido).
+  // Esta ficha pasa a ser la «fila elegida» de la pantalla desde la que se abrió (la anterior del recorrido; con un enlace directo no hay ninguna).
   $effect(() => {
     const clienteId = ruta.clienteId;
-    app.memoria.elegirFila({ clienteId }, untrack(() => app.direccion.destinoDeAtras));
+    app.memoria.elegirFila({ clienteId }, untrack(() => app.direccion.anterior));
   });
 
   const actual = $derived(app.memoria.solapaDe(ruta.clienteId));

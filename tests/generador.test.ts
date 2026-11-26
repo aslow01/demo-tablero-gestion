@@ -189,7 +189,7 @@ describe("5.2: el relleno (vale para cualquier semilla)", () => {
     });
     expect(anuladas.length, "NC del 100 % en las 50 semillas").toBeGreaterThanOrEqual(1);
     for (const a of anuladas) expect(a.cobros, `${a.id} (semilla ${a.semilla})`).toBe(0);
-  });
+  }, 30_000); // genera 50 semillas (~4 s en reposo): el tope por defecto de 5 s falla con la máquina cargada
 
   it.each(SEMILLAS.slice(0, 10))("el cobro cae en vencimiento + el corrimiento del perfil (o en la emisión si ésta es posterior), y nunca después del 2026-10-31 (semilla %i)", (semilla) => {
     const g = generar(semilla);

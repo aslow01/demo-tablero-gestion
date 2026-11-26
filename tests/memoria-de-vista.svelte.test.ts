@@ -29,6 +29,13 @@ describe("fila elegida: la última que se abrió, para marcarla al volver a la p
     expect(m.filaElegidaEn(resumen)).toBeNull();
   });
 
+  it("abrir una fila sin pantalla de origen (un enlace directo) no deja ninguna marcada, y olvida la anterior", () => {
+    const m = crearMemoriaDeVista();
+    m.elegirFila({ clienteId: "C05" }, clientes);
+    m.elegirFila({ clienteId: "C06" }, null);
+    for (const ruta of [resumen, clientes, comprobantes, meses, desgloseDeMora, { tipo: "cliente", clienteId: "C06" }] as const) expect(m.filaElegidaEn(ruta), ruta.tipo).toBeNull();
+  });
+
   it("la marca vale solo para la pantalla desde la que se abrió la fila, no para las otras", () => {
     const m = crearMemoriaDeVista();
     m.elegirFila({ clienteId: "C05" }, resumen);

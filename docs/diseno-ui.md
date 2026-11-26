@@ -402,6 +402,9 @@ Dos variantes del mismo aviso (5.12): corte inválido (S5) y, en el Desglose de 
   < 40rem se muestra **solo la miga anterior** como "‹ {nombre}" (enlace, 44 px de alto). Son para **subir**:
   - Cliente: "Resumen / {Cliente}".
   - Comprobante: "Resumen / {Cliente} / {Comprobante}" (el comprobante es del cliente: subir al cliente es subir).
+    Si se llegó desde la lista de Comprobantes: "Comprobantes / {Comprobante}". El menú marca la misma sección que dice la
+    primera miga (Comprobantes en ese caso; Clientes si se llegó de otro lado o con un enlace directo, que no tiene origen).
+    El origen se mira en el recorrido de la sesión, saltando clientes y comprobantes; se pierde al recargar.
   - Desglose de toda la empresa: "Resumen / {Título corto de la medida}" ("En mora").
   - Desglose con `cliente=`: "Resumen / {Título corto} / {Cliente}": la miga del medio lleva al **mismo desglose sin el
     filtro** (es el nivel de arriba); el nombre del cliente en la bajada lleva a la vista Cliente (regla de la sección 2).
