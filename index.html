@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Copiado de la Demo 2 (Control de flota, del mismo autor, MIT): index.html.
+     Cambios: título y favicon propios (la marca de esta demo, en azul tinta); el sprite es propio:
+     íconos rellenos (no de trazo), con los nombres de sección (`resumen`, `comprobantes`, `clientes`, `meses`) y los de navegación y búsqueda;
+     `viewport-fit=cover` para que las barras fijas respeten la zona segura del celular. Sin hojas ni fuentes de afuera: la CSP es 'self'. -->
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Tablero de cobranzas (demo)</title>
+    <meta name="description" content="Demo de un tablero de cobranzas: saldo a cobrar, mora por días de atraso, clientes y comprobantes, con cada cifra abierta hasta su origen. Datos ficticios." />
+    <meta property="og:title" content="Tablero de cobranzas (demo)" />
+    <meta property="og:description" content="Demo de un tablero de cobranzas: saldo a cobrar, mora por días de atraso, clientes y comprobantes, con cada cifra abierta hasta su origen. Datos ficticios." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tablero.matiasormeno.com.ar/" />
+    <meta property="og:image" content="https://tablero.matiasormeno.com.ar/og-resumen.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Pantalla de resumen del tablero: la mora, el saldo a cobrar según días de atraso y los principales deudores." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231b4a7d'%3E%3Crect x='1.5' y='12' width='4.6' height='6' rx='.6'/%3E%3Crect x='7.2' y='12' width='4.6' height='6' rx='.6' opacity='.72'/%3E%3Crect x='12.9' y='12' width='4.6' height='6' rx='.6' opacity='.5'/%3E%3Crect x='18.6' y='12' width='3.9' height='6' rx='.6' opacity='.3'/%3E%3Crect x='14.2' y='5' width='2' height='16.5' rx='1'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <!-- Sprite de íconos (docs/diseno-ui.md 5.15): dibujados a mano, 24 × 24, rellenos con currentColor.
+         Se usan con el componente Icono: <svg aria-hidden="true" focusable="false"><use href="#i-…" /></svg>.
+         Tienen que coincidir con la lista ICONOS de src/componentes/tipos.ts (lo comprueba tests/iconos.test.ts). -->
+    <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+      <!-- Marca: la regla partida en cuatro tramos, con la marca del atraso cruzando el tercero. -->
+      <symbol id="i-marca" viewBox="0 0 24 24"><rect x="1.5" y="12" width="4.6" height="6" rx=".6" /><rect x="7.2" y="12" width="4.6" height="6" rx=".6" opacity=".72" /><rect x="12.9" y="12" width="4.6" height="6" rx=".6" opacity=".5" /><rect x="18.6" y="12" width="3.9" height="6" rx=".6" opacity=".3" /><rect x="14.2" y="5" width="2" height="16.5" rx="1" /></symbol>
+
+      <!-- Secciones. -->
+      <!-- Resumen: un tablero con la regla adentro. -->
+      <symbol id="i-resumen" viewBox="0 0 24 24"><path d="M5 3h14a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Zm0 2.3a.7.7 0 0 0-.7.7v12c0 .4.3.7.7.7h14c.4 0 .7-.3.7-.7V6a.7.7 0 0 0-.7-.7Z" /><rect x="5.5" y="8" width="6" height="3.2" rx=".5" /><rect x="5.5" y="13.4" width="5" height="2.6" rx=".4" /><rect x="11.2" y="13.4" width="3.4" height="2.6" rx=".4" /><rect x="15.4" y="13.4" width="3.1" height="2.6" rx=".4" /></symbol>
+      <!-- Comprobantes: el talón (tipo y número) apilado. -->
+      <symbol id="i-comprobantes" viewBox="0 0 24 24"><path d="M7 2h12a2 2 0 0 1 2 2v13h-2.3V4.3H7Z" /><path d="M5 6h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Zm.3 2.3v11.4h9.4V8.3Z" /><rect x="5.3" y="8.3" width="3.6" height="3.4" /><rect x="10.2" y="9.2" width="3.4" height="1.8" rx=".5" /><rect x="6.5" y="14" width="7" height="1.9" rx=".5" /><rect x="6.5" y="17" width="4.5" height="1.9" rx=".5" /></symbol>
+      <!-- Clientes: dos edificios. -->
+      <symbol id="i-clientes" viewBox="0 0 24 24"><path d="M3 21V6.5L10 3v18h-2.3V6.6L5.3 7.8V21Z" /><path d="M11.5 21V9.5l9.5-2V21h-2.3V10.4l-4.9 1V21Z" /><rect x="1" y="20" width="22" height="2" rx="1" /><rect x="15" y="13" width="2" height="2" /><rect x="15" y="16.5" width="2" height="2" /></symbol>
+      <!-- Meses: barras de a pares. -->
+      <symbol id="i-meses" viewBox="0 0 24 24"><rect x="2.5" y="10" width="3" height="10" /><rect x="6.3" y="13" width="3" height="7" opacity=".55" /><rect x="11" y="5" width="3" height="15" /><rect x="14.8" y="8" width="3" height="12" opacity=".55" /><rect x="1.5" y="20.2" width="21" height="1.8" rx=".9" /></symbol>
+
+      <!-- Estados (cada uno con una forma distinta: el color nunca va solo). -->
+      <symbol id="i-vencido" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2.3a7.7 7.7 0 1 0 0 15.4 7.7 7.7 0 0 0 0-15.4Z" /><rect x="11" y="6.5" width="2.2" height="7" rx="1" /><circle cx="12.1" cy="16.6" r="1.4" /></symbol>
+      <symbol id="i-reloj" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2.3a7.7 7.7 0 1 0 0 15.4 7.7 7.7 0 0 0 0-15.4Z" /><path d="M11 7h2.2v4.6l3.3 2-1.1 1.9L11 12.8Z" /></symbol>
+      <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 2.5 22.5 21h-21Zm0 4.6L5.4 18.7h13.2Z" /><rect x="11" y="9.5" width="2" height="5" rx="1" /><circle cx="12" cy="16.6" r="1.2" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m9.5 16.2-4.2-4.2-1.6 1.6 5.8 5.8L21 8l-1.6-1.6Z" /></symbol>
+      <symbol id="i-guion" viewBox="0 0 24 24"><rect x="5" y="10.8" width="14" height="2.4" rx="1.2" /></symbol>
+
+      <!-- Controles y navegación. -->
+      <symbol id="i-cerrar" viewBox="0 0 24 24"><path d="m6.6 5 5.4 5.4L17.4 5 19 6.6 13.6 12l5.4 5.4-1.6 1.6-5.4-5.4L6.6 19 5 17.4l5.4-5.4L5 6.6Z" /></symbol>
+      <symbol id="i-buscar" viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 6 12l4.8 4.8-1.6 1.6-4.8-4.8A7.5 7.5 0 1 1 10.5 3Zm0 2.3a5.2 5.2 0 1 0 0 10.4 5.2 5.2 0 0 0 0-10.4Z" /></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9.2 5.3 6.7 6.7-6.7 6.7-1.6-1.6 5.1-5.1-5.1-5.1Z" /></symbol>
+      <symbol id="i-chevron-izq" viewBox="0 0 24 24"><path d="m14.8 5.3 1.6 1.6-5.1 5.1 5.1 5.1-1.6 1.6L8.1 12Z" /></symbol>
+      <!-- «Atrás» dibuja lo mismo que chevron-izq; tiene nombre propio porque es otro uso (botón de la barra del celular). -->
+      <symbol id="i-atras" viewBox="0 0 24 24"><path d="m14.8 5.3 1.6 1.6-5.1 5.1 5.1 5.1-1.6 1.6L8.1 12Z" /></symbol>
+      <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M4 11h12.2l-4.6-4.6L13.2 5l7 7-7 7-1.6-1.4 4.6-4.6H4Z" /></symbol>
+      <symbol id="i-flecha-izq" viewBox="0 0 24 24"><path d="M20 11H7.8l4.6-4.6L10.8 5l-7 7 7 7 1.6-1.4L7.8 13H20Z" /></symbol>
+      <symbol id="i-ayuda" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2.3a7.7 7.7 0 1 0 0 15.4 7.7 7.7 0 0 0 0-15.4Z" /><path d="M12 6.4c2.2 0 3.8 1.3 3.8 3.2 0 1.6-1 2.4-2 3-.7.4-.8.7-.8 1.3v.4h-2.2v-.6c0-1.3.5-2 1.5-2.6.8-.5 1.2-.8 1.2-1.5 0-.7-.6-1.2-1.5-1.2-1 0-1.6.6-1.7 1.5H8.1c.1-2.2 1.7-3.5 3.9-3.5Z" /><circle cx="12" cy="17.2" r="1.4" /></symbol>
+    </svg>
+
+    <!-- Sin JavaScript la página quedaba en blanco. El estilo es la clase `.sin-js` de src/estilos/base.css (la política de contenido no admite `style=`). -->
+    <noscript>
+      <main class="sin-js">
+        <h1>Tablero de cobranzas (demo)</h1>
+        <p>Esta demo necesita JavaScript para funcionar.</p>
+        <p>Es un tablero de facturación, cobranza y mora de una empresa ficticia, con datos de ejemplo: todo se calcula en el navegador, sin servidor y sin cuentas.</p>
+      </main>
+    </noscript>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

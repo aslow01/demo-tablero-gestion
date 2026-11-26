@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Términos que la búsqueda de prohibidos no puede traer escritos (ver scripts/prohibidos.mjs): solo en local, nunca versionado
+scripts/prohibidos.local.json
+
+# Variables de entorno y secretos
+.env*

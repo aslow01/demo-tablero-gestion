@@ -1,0 +1,329 @@
+/* Copiado de la Demo 2 (Control de flota, del mismo autor, MIT): src/estilos/base.css.
+   Cambios: los tonos de estado son los de esta demo; se sacó la clase `.km`; foco de 3 px, interlineado 1,45, títulos en la condensada, cifras en la
+   de títulos y `.rotulo` más firme; se agregan las tres tipografías alojadas (@font-face), el relleno de desplazamiento bajo las barras fijas y
+   `overflow-x: clip` contra el desplazamiento lateral. */
+/* Tipografías, reinicio, página, tonos, foco, utilidades y movimiento reducido (docs/diseno-ui.md, secciones 3, 5 y 9).
+   Lo de cada pieza (etiqueta, panel, botón, tabla) vive en su componente, en src/componentes. */
+
+/* ---------- Tipografías alojadas en el propio sitio (font-src 'self') ----------
+   Fuentes variables, subconjunto latino (cubre el español), SIL Open Font License 1.1: los textos de licencia están junto a los archivos.
+   `swap`: el texto se ve enseguida con la fuente de reemplazo y cambia cuando llega la propia. El rango de cada eje es el del archivo.
+   Cada familia se usa a través de su token (--t-familia, --t-familia-titulo, --t-mono): sacar una es borrar su bloque y cambiar su token. */
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("./fuentes/schibsted-grotesk-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("./fuentes/bricolage-grotesque-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Red Hat Mono";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("./fuentes/red-hat-mono-latin.woff2") format("woff2");
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Sin desplazamiento suave (5.2/6: al cambiar de ruta la página sube de golpe). */
+  scroll-behavior: auto;
+  scroll-padding-block: var(--e-4);
+  overflow-x: clip;
+}
+
+/* El foco nunca queda bajo una barra fija: arriba la del celular o la de escritorio, abajo las pestañas. */
+@media (max-width: 63.99rem) {
+  html {
+    scroll-padding-top: calc(var(--alto-barra) + var(--e-3));
+    scroll-padding-bottom: calc(var(--alto-pestanas) + var(--e-4));
+  }
+}
+
+/* En pantallas anchas el hueco de la barra de desplazamiento queda reservado, así el diseño no se corre cuando la barra aparece o desaparece
+   (en el celular las barras se superponen y no ocupan lugar). */
+@media (min-width: 40rem) {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--c-escritorio);
+  color: var(--c-texto);
+  font-family: var(--t-familia);
+  font-size: var(--t-cuerpo);
+  line-height: 1.45;
+  overflow-wrap: break-word;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+fieldset,
+figure,
+dl,
+dd {
+  margin: 0;
+}
+
+fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--t-familia-titulo);
+  color: var(--c-texto);
+}
+h1 {
+  font-size: var(--t-h1);
+  line-height: 1.05;
+  font-weight: var(--t-peso-titulo);
+  font-stretch: var(--t-ancho-titulo);
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+h2 {
+  font-size: var(--t-h2);
+  line-height: 1.2;
+  font-weight: var(--t-peso-titulo);
+  font-stretch: var(--t-ancho-seccion);
+  letter-spacing: -0.005em;
+}
+h3 {
+  font-size: var(--t-h3);
+  line-height: 1.3;
+  font-weight: 700;
+  font-stretch: var(--t-ancho-seccion);
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--c-enlace);
+  text-underline-offset: 3px;
+}
+@media (hover: hover) {
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+svg {
+  flex: none;
+}
+
+/* Foco visible en todo: un solo anillo, el del enlace y el foco. Nunca `outline: none` sin reemplazo. */
+:focus-visible {
+  outline: 3px solid var(--c-foco);
+  outline-offset: 2px;
+}
+/* Lo que recibe el foco por programa (h1, h2 del panel, resumen de errores) no lleva anillo si no se llegó con teclado. */
+[tabindex="-1"]:focus:not(:focus-visible) {
+  outline: none;
+}
+/* El h1 al que se lleva el foco tras navegar no lleva anillo ni con teclado (el cambio de pantalla se anuncia aparte; docs/diseno-ui.md, sección 2).
+   Tampoco `main`, que es el destino de «Ir al contenido». */
+h1[tabindex="-1"]:focus,
+main[tabindex="-1"]:focus {
+  outline: none;
+}
+
+progress {
+  accent-color: var(--c-tinta);
+}
+
+/* ---------- Tonos de estado: una sola definición; la usan etiquetas, franjas, avisos y mensajes ---------- */
+[data-tono="ok"] {
+  --tono-t: var(--c-ok-t);
+  --tono-f: var(--c-ok-f);
+  --tono-r: var(--c-ok-r);
+}
+[data-tono="revisar"] {
+  --tono-t: var(--c-revisar-t);
+  --tono-f: var(--c-revisar-f);
+  --tono-r: var(--c-revisar-r);
+}
+[data-tono="diferencia"] {
+  --tono-t: var(--c-diferencia-t);
+  --tono-f: var(--c-diferencia-f);
+  --tono-r: var(--c-diferencia-r);
+}
+[data-tono="neutro"] {
+  --tono-t: var(--c-neutro-t);
+  --tono-f: var(--c-neutro-f);
+  --tono-r: var(--c-neutro-r);
+}
+[data-tono="pendiente"] {
+  --tono-t: var(--c-pendiente-t);
+  --tono-f: var(--c-pendiente-f);
+  --tono-r: var(--c-pendiente-r);
+}
+
+/* ---------- Utilidades ---------- */
+
+/* Sprite de íconos (vive en index.html). Fuera de la vista pero presente: los <use> lo necesitan. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Texto solo para lectores de pantalla. */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Aviso de `<noscript>` de index.html: la página sin JavaScript. Una tarjeta centrada, con los tokens de siempre. */
+.sin-js {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  max-width: 34rem;
+  margin: var(--e-6) auto;
+  padding: var(--e-5);
+  border: 1px solid var(--c-borde);
+  border-radius: var(--r-2);
+  background: var(--c-superficie);
+  box-shadow: var(--s-1);
+}
+@media (max-width: 40rem) {
+  .sin-js {
+    margin: var(--e-4);
+    padding: var(--e-4);
+  }
+}
+
+/* Enlace "Ir al contenido": visible solo al recibir el foco. Fijo, para que ninguna barra lo tape. */
+.saltar {
+  position: fixed;
+  left: var(--e-2);
+  top: var(--e-2);
+  z-index: 300;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--r-1);
+  background: var(--c-tinta);
+  color: var(--c-sobre-tinta);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.saltar:focus-visible {
+  transform: none;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--c-superficie);
+}
+
+/* Rótulo: mayúsculas chicas, solo para rótulos y cabeceras de tabla. */
+.rotulo {
+  font-size: var(--t-rotulo);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--c-texto-2);
+}
+
+.nota {
+  font-size: var(--t-chico);
+  line-height: 1.4;
+  color: var(--c-texto-2);
+}
+
+/* Cifras (importes, porcentajes, días, conteos, fechas en tablas): la condensada de los títulos, con cifras tabulares. */
+.num {
+  font-family: var(--t-familia-cifra);
+  font-stretch: var(--t-ancho-seccion);
+  font-weight: var(--t-peso-cifra);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Códigos (número de comprobante y de recibo, CUIT). */
+.codigo {
+  font-family: var(--t-mono);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Medida de lectura de los párrafos. */
+.parrafo {
+  max-width: 62ch;
+}
+
+/* Contenedor centrado con medianil lateral. */
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin-inline: auto;
+  padding-inline: var(--margen);
+}
+
+/* ---------- Colores forzados (contraste alto de Windows) ---------- */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* ---------- Movimiento reducido ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

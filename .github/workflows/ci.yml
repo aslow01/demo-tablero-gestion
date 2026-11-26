@@ -1,0 +1,37 @@
+# Copiado de la Demo 2 (Control de flota, del mismo autor, MIT): .github/workflows/ci.yml.
+# Cambios: los comentarios (esta demo no tiene reloj ni regla T2) y la nota de estado de abajo; los pasos son los mismos.
+#
+# Verifica cada push y cada pull request: tipos, tests (con matriz de zonas horarias), compilación, peso, búsqueda de prohibidos y auditoría.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # Instalación exacta desde el lockfile y sin scripts de instalación de las dependencias.
+      - run: npm ci --ignore-scripts
+      # svelte-check (componentes) + tsc (todo lo demás). TypeScript 6.0.3: svelte-check 4.7 no corre con TypeScript 7 (decisión S5).
+      - run: npm run check
+      # Con una zona horaria lejana de Argentina por defecto (vite.config.ts): si el dominio usara la hora local, se vería.
+      - run: npm test
+      # La matriz completa de zonas horarias: UTC, Asia/Tokyo y America/Los_Angeles.
+      - run: npm run test:tz
+      - run: npm run build
+      # El tope de 100 kB de JS comprimido con gzip (docs/stack.md, sección 6); imprime el número y falla si lo pasa.
+      - run: npm run peso
+      # Sin {@html}, sin Math.random ni new Date( en src/lib, sin parseFloat, toFixed, Math.round ni Number( en src/lib/dominio (M1), sin correos que no sean de ejemplo (los nombres de terceros solo se buscan en local: acá no existe `scripts/prohibidos.local.json`).
+      - run: npm run buscar
+      # Sin altas ni críticas. Si una herramienta de desarrollo trae un aviso sin parche, se documenta con fecha y se baja a `critical`.
+      - run: npm audit --audit-level=high

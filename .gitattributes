@@ -1,0 +1,13 @@
+# Fines de línea: siempre LF en el árbol de trabajo (los tests comparan cadenas con saltos de línea LF).
+* text=auto eol=lf
+
+# Binarios (hoy no hay ninguno versionado; por si se suman).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

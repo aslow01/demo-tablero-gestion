@@ -1,0 +1,238 @@
+/* Copiado de la Demo 2 (Control de flota, del mismo autor, MIT): src/estilos/tokens.css.
+   Cambios: los valores son los de esta demo (acento azul tinta, tonos de estado y de tramo, series, escala de cifras); el detalle está en docs/procedencia.md.
+   Tokens de diseño. Claro por defecto; el oscuro sigue al dispositivo (sin selector de tema).
+   Prefijos: --c- color · --t- tipografía · --e- espaciado · --r- radio · --s- sombra · --m- movimiento.
+   «corte» queda reservada para la fecha de corte: la muesca en diagonal de las pestañas se llama --muesca.
+   Tamaños en rem: 1 rem = 16 px y respetan el tamaño de texto de la persona. Los puntos de quiebre son 48 rem (tableta) y 64 rem (escritorio).
+   Tipografías: las tres van alojadas en src/estilos/fuentes/ (font-src 'self'), declaradas en base.css. Cada una vive detrás de su token
+   (--t-familia, --t-familia-titulo, --t-mono): sacar una es cambiar la primera familia de esa línea y borrar su @font-face de base.css.
+   Los valores de color se miden con `npm run contraste` (scripts/contraste.mjs): si se cambia uno, se vuelve a correr.
+   `contraste.mjs` lee este archivo: el primer bloque de variables es el claro y el del modo oscuro (con la sangría de este archivo) lo pisa;
+   un valor puede ser un alias de otro token con var(). */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---------- Color: superficies, texto y bordes ---------- */
+  --c-escritorio: #eceeed;
+  --c-fondo: #eceeed;
+  --c-superficie: #fbfcfb;
+  --c-superficie-2: #e3e6e5;
+  /* Ventana (superficie con barra de título): hoy solo el botón de ícono usa `--c-ventana-control-hover`; la barra de un panel es de su misma superficie. */
+  --c-ventana-barra: var(--c-superficie-2);
+  --c-ventana-borde: var(--c-borde);
+  --c-ventana-control-hover: var(--c-superficie-2);
+  --c-texto: #161b21;
+  --c-texto-2: #434b54;
+  --c-texto-3: #575f68;
+  --c-borde: #d2d6d5;
+  /* Bordes de controles: 3:1 o más sobre la superficie y sobre la página (1.4.11). */
+  --c-borde-fuerte: #6f777b;
+
+  /* ---------- Color: tinta (azul de la acción) ---------- */
+  /* Acción: botón primario, pestaña activa, filtro elegido, marca del lateral, subrayado de la cifra-enlace. */
+  --c-tinta: #1b4a7d;
+  --c-tinta-hover: #143a64;
+  --c-sobre-tinta: #f3f7fb;
+  --c-enlace: #1f5a96;
+  --c-foco: #1f5a96;
+  --c-acento-suave: #e3ecf6; /* = --c-pendiente-f */
+  --c-velo: rgb(12 14 16 / 0.45);
+  /* Nombres que usan las piezas de uso general (botón, enlace, solapa): son la tinta. */
+  --c-acento: var(--c-tinta);
+  --c-acento-hover: var(--c-tinta-hover);
+  --c-acento-texto: var(--c-sobre-tinta);
+
+  /* Franja de la mora (la cifra que manda): tinta en claro; en oscuro un azul profundo con texto claro, porque el azul claro encandila. */
+  --c-franja: var(--c-tinta);
+  --c-franja-hover: var(--c-tinta-hover);
+  --c-sobre-franja: var(--c-sobre-tinta);
+  --c-sobre-franja-2: #cddbeb; /* los centavos de la cifra */
+
+  /* ---------- Color: barra lateral (escritorio), azul de noche ---------- */
+  --c-lateral: #13253a;
+  --c-lateral-texto: #eef3f8;
+  --c-lateral-texto-2: #b8c6d6;
+  --c-lateral-hover: rgb(238 243 248 / 0.08);
+  --c-lateral-borde: rgb(238 243 248 / 0.16);
+  --c-lateral-foco: #eef3f8;
+
+  /* ---------- Color: tonos de estado (t = texto, f = fondo, r = franja o marca) ---------- */
+  --c-ok-t: #1b6537;
+  --c-ok-f: #dff0e4;
+  --c-ok-r: #2f8a50;
+  --c-revisar-t: #734500;
+  --c-revisar-f: #f8ebcf;
+  --c-revisar-r: #b57a06;
+  /* «diferencia» es el tono grave: un error o un atraso de 61 días o más. */
+  --c-diferencia-t: #9a241e;
+  --c-diferencia-f: #f8e2df;
+  --c-diferencia-r: #c4372e;
+  --c-neutro-t: #474e55;
+  --c-neutro-f: #e6e9e7;
+  --c-neutro-r: #8e949a;
+  /* Pendiente: saldo a favor y pago a cuenta, como dato y no como alerta. */
+  --c-pendiente-t: #1d4f84;
+  --c-pendiente-f: #e3ecf6;
+  --c-pendiente-r: #1f5a96;
+
+  /* ---------- Color: series del gráfico de 12 meses ---------- */
+  --c-serie-facturado: #1f5a96;
+  --c-serie-cobrado: #737a80;
+
+  /* ---------- Color: tramos de antigüedad. De no vencido (gris) a más de 90 días; el contraste crece con la gravedad. ---------- */
+  --c-tramo-0: #737980;
+  --c-tramo-1: #9a7100;
+  --c-tramo-2: #c45a12;
+  --c-tramo-3: #b8312a;
+  --c-tramo-4: #7a1a16;
+
+  /* ---------- Tipografía ---------- */
+  /* Texto: Schibsted Grotesk. Títulos: Bricolage Grotesque (condensada con font-stretch). Códigos y talón del comprobante: Red Hat Mono. */
+  --t-familia: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --t-familia-titulo: "Bricolage Grotesque", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  /* Importes, fechas y porcentajes: las cifras tabulares de la de texto son demasiado anchas, así que van en la de títulos. */
+  --t-familia-cifra: var(--t-familia-titulo);
+  --t-mono: "Red Hat Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Anchos de la de títulos (eje wdth, en porcentaje) y sus pesos. */
+  --t-ancho-titulo: 82%; /* h1, cifras grandes, solapas */
+  --t-ancho-marca: 85%; /* marca y pestañas */
+  --t-ancho-seccion: 88%; /* títulos de panel e importes de tabla */
+  --t-peso-titulo: 750;
+  --t-peso-cifra: 560;
+
+  --t-cuerpo: 1rem;
+  --t-medio: 0.9375rem; /* 15 px */
+  --t-grande: 1.0625rem; /* 17 px: título de panel */
+  --t-tabla: 0.875rem; /* 14 px */
+  --t-chico: 0.8125rem; /* 13 px */
+  --t-rotulo: 0.75rem; /* 12 px */
+  --t-h1: 1.75rem;
+  --t-h2: 1.0625rem; /* título de panel; el de las páginas de texto largo usa --t-h2-largo */
+  --t-h2-largo: 1.25rem;
+  --t-h3: 1.125rem;
+  /* Cifras: --t-cifra es la del movimiento del mes, el saldo y los datos del cliente; --t-cifra-g la protagonista (la mora). */
+  --t-cifra: 1.625rem;
+  --t-cifra-g: 2.5rem;
+  /* Parte decimal (",00") de las cifras grandes. */
+  --t-centavos: 0.62em;
+
+  /* ---------- Espaciado (base 4 px) ---------- */
+  --e-1: 0.25rem;
+  --e-2: 0.5rem;
+  --e-3: 0.75rem;
+  --e-4: 1rem;
+  --e-5: 1.5rem;
+  --e-6: 2rem;
+  --e-7: 3rem;
+  --e-8: 4rem;
+  --margen: 1rem;
+  --gutter: var(--margen);
+  --ancho-max: 85rem;
+
+  /* ---------- Radios ---------- */
+  --r-1: 4px;
+  --r-2: 8px;
+  --r-3: 10px;
+  --r-4: 14px;
+  --r-pildora: 999px;
+
+  /* ---------- Sombras ---------- */
+  --s-1: 0 1px 0 rgb(22 27 33 / 0.04);
+  --s-pestanas: 0 -6px 20px rgb(0 0 0 / 0.05);
+  --s-flotante: 0 8px 24px rgb(16 24 32 / 0.16), 0 2px 6px rgb(16 24 32 / 0.08);
+
+  /* ---------- Medidas fijas ---------- */
+  --alto-tactil: 2.75rem; /* 44 px: mínimo de todo lo que se pulsa */
+  --alto-barra: 3.25rem; /* barra superior del celular, 52 px */
+  --alto-pestanas: 4rem; /* barra inferior de pestañas, 64 px */
+  --ancho-lateral: 15.5rem; /* 248 px */
+  --muesca: 0.75rem; /* corte en diagonal de la pestaña activa y de las solapas, 12 px */
+
+  /* ---------- Movimiento ---------- */
+  --m-rapido: 120ms;
+  --m-medio: 220ms;
+  --m-lento: 320ms;
+  --m-curva: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --margen: 1.5rem;
+    --t-h1: 1.875rem;
+    --t-cifra-g: 3.25rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --margen: 2.5rem;
+    /* En escritorio el texto base baja a 15 px y crecen los títulos y las cifras. */
+    --t-cuerpo: 0.9375rem;
+    --t-h1: 2rem;
+    --t-cifra: 1.75rem;
+    --t-cifra-g: 4.25rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-escritorio: #0f1215;
+    --c-fondo: #0f1215;
+    --c-superficie: #171b20;
+    --c-superficie-2: #212830;
+    --c-texto: #e9edf1;
+    --c-texto-2: #b4bdc6;
+    --c-texto-3: #98a2ac;
+    --c-borde: #2e353d;
+    --c-borde-fuerte: #7b8692;
+
+    /* En oscuro la acción es azul claro con texto oscuro. */
+    --c-tinta: #a9c9ee;
+    --c-tinta-hover: #c4dbf5;
+    --c-sobre-tinta: #0b1a2a;
+    --c-enlace: #96bfec;
+    --c-foco: #96bfec;
+    --c-acento-suave: #1a2a3d;
+    --c-velo: rgb(0 0 0 / 0.6);
+
+    --c-franja: #1d3a5c;
+    --c-franja-hover: #24466e;
+    --c-sobre-franja: #eef4fa;
+    --c-sobre-franja-2: #c3d4e7;
+
+    --c-lateral: #142131;
+    --c-lateral-texto-2: #aebdcd;
+
+    --c-ok-t: #86d6a1;
+    --c-ok-f: #16301f;
+    --c-ok-r: #45b26e;
+    --c-revisar-t: #f1c46e;
+    --c-revisar-f: #33280f;
+    --c-revisar-r: #d9a030;
+    --c-diferencia-t: #f59b91;
+    --c-diferencia-f: #3a1b18;
+    --c-diferencia-r: #e2665b;
+    --c-neutro-t: #b4bdc6;
+    --c-neutro-f: #252b31;
+    --c-neutro-r: #7a838b;
+    --c-pendiente-t: #a9cbf0;
+    --c-pendiente-f: #16263a;
+    --c-pendiente-r: #8cb8e8;
+
+    --c-serie-facturado: #8cb8e8;
+    --c-serie-cobrado: #7f8890; /* 4,13:1 sobre la banda del mes de corte */
+
+    /* En oscuro cada tramo es más claro que el anterior: "Más de 90 días" es siempre el que más se ve. */
+    --c-tramo-0: #6b747c;
+    --c-tramo-1: #8f711f;
+    --c-tramo-2: #c86a2e;
+    --c-tramo-3: #eb665c;
+    --c-tramo-4: #ff9a90;
+
+    --s-1: 0 1px 0 rgb(0 0 0 / 0.3);
+    --s-pestanas: 0 -6px 20px rgb(0 0 0 / 0.3);
+    --s-flotante: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 1px #2e353d;
+  }
+}

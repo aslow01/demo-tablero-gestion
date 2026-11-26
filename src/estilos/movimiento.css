@@ -1,0 +1,92 @@
+/* Movimiento entre pantallas (docs/diseno-ui.md, 3.6). Lo arma src/lib/estado/transicion.ts: pone la clase `en-transicion` en la raíz mientras dura la
+   transición y el atributo `data-viajando` en el origen y el destino de lo que viaja. Nada de `style` en línea (la política de contenido lo vigila).
+   Lo que se anima: la pantalla (`main`) sale en 110 ms y entra en 230 ms subiendo 10 px, y el número de un comprobante o el nombre de un cliente
+   viaja de la tabla al título en 320 ms. Lo que NO se anima: el cambio de corte (no pasa por acá), las cifras (nunca cuentan) y el marco (lateral,
+   barras), que se queda quieto. Con movimiento reducido no se anima nada, y sin View Transitions entra una animación equivalente. */
+
+/* La pantalla tiene nombre propio solo mientras dura la transición: con nombre fijo, `main` sería siempre una capa aparte. */
+html.en-transicion #principal {
+  view-transition-name: principal;
+}
+
+/* Mientras dura la transición de pantalla no corre ninguna transición de CSS (los 120 ms de color del mouse sobre una fila): la foto de «antes» o la de «después» no
+   se toma con una en marcha, y con el mouse quieto sobre la pantalla nueva empieza otra. No se nota. Esto solo rige donde hay View Transitions, que son Chrome y
+   Chromium (`usaViewTransitions`, en transicion.ts); Safari y Firefox van por la animación de entrada de más abajo. Es una precaución. */
+html.en-transicion *,
+html.en-transicion *::before,
+html.en-transicion *::after {
+  transition: none !important;
+}
+
+/* Las barras que se quedan fijas al desplazar (arriba en escritorio, arriba y abajo en el celular) tienen nombre propio: así la foto de la pantalla, que es
+   más alta que la ventana, no las tapa mientras se mueve. Se mezclan en 250 ms (lo que trae el navegador): lo único que cambia en ellas son las migas. */
+html.en-transicion [data-fijo="barra-de-corte"] {
+  view-transition-name: barra-de-corte;
+}
+html.en-transicion [data-fijo="barra-movil"] {
+  view-transition-name: barra-movil;
+}
+html.en-transicion [data-fijo="pestanas"] {
+  view-transition-name: pestanas;
+}
+
+/* El resto de la página (marco, lateral, barras) no se anima: la foto de «antes» y la de «después» se quedan tal cual, sin mezclarse. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(principal) {
+  animation: mov-sale 110ms ease-in both;
+}
+::view-transition-new(principal) {
+  animation: mov-entra 230ms var(--m-curva) both;
+}
+
+/* Lo que viaja: origen (en la tabla) y destino (el título) comparten el nombre. */
+[data-viajando] {
+  view-transition-name: viaja;
+}
+::view-transition-group(viaja) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--m-curva);
+}
+/* El título que recibe el nombre mide lo que mide su texto, para que la foto no se estire hasta el borde de la pantalla. */
+h1[data-viaja] {
+  width: fit-content;
+  max-width: 100%;
+}
+
+@keyframes mov-sale {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes mov-entra {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Sin View Transitions: la pantalla entra con la misma animación. `backwards`: antes de empezar se ve el primer cuadro (transparente, 10 px más abajo) y al terminar la
+   animación suelta el elemento (con `both` seguía rellenando el último cuadro, o sea el `transform` de `main` quedaba en manos de una animación ya terminada). */
+#principal.entra {
+  animation: mov-entra 230ms var(--m-curva) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.en-transicion #principal,
+  html.en-transicion [data-fijo],
+  [data-viajando] {
+    view-transition-name: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  #principal.entra {
+    animation: none;
+  }
+}
