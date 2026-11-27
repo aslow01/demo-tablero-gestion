@@ -11,22 +11,25 @@ import type { Ruta, RutaNavegable } from "./enrutador.ts";
 export const SECCIONES = ["resumen", "comprobantes", "clientes", "meses"] as const;
 export type Seccion = (typeof SECCIONES)[number];
 
+/** La pantalla de la que se salió para abrir un comprobante, cuando la miga y el menú tienen que decirlo: la lista de Comprobantes o un desglose. */
+export type OrigenDeComprobante = Extract<RutaNavegable, { tipo: "comprobantes" | "desglose" }>;
+
 /**
- * ¿Se llegó a un comprobante desde la lista de Comprobantes? `anteriores` son las pantallas del recorrido anteriores a la actual, de la más vieja a la más
- * reciente. Un cliente o un comprobante no cuentan como origen (son detalles): se sigue hacia atrás hasta la primera pantalla de otra clase, y decide esa.
- * Sin pantalla anterior (un enlace directo) no hay origen: `false`.
+ * ¿Desde dónde se llegó a un comprobante? `anteriores` son las pantallas del recorrido anteriores a la actual, de la más vieja a la más reciente. Un cliente o
+ * un comprobante no cuentan como origen (son detalles): se sigue hacia atrás hasta la primera pantalla de otra clase, y decide esa. Si es la lista de
+ * Comprobantes o un desglose, es el origen; si es otra cosa, o no hay pantalla anterior (un enlace directo), no hay origen: `null`.
  */
-export function llegoDesdeComprobantes(anteriores: readonly Ruta[]): boolean {
+export function origenDeComprobante(anteriores: readonly Ruta[]): OrigenDeComprobante | null {
   const origen = anteriores.findLast((r) => r.tipo !== "cliente" && r.tipo !== "comprobante");
-  return origen?.tipo === "comprobantes";
+  return origen?.tipo === "comprobantes" || origen?.tipo === "desglose" ? origen : null;
 }
 
 /**
- * La sección que queda marcada, siempre la misma que dice la primera miga (`migasDe`). Un cliente cuelga de Clientes; un comprobante, de Clientes, o de
- * Comprobantes si `desdeComprobantes` (se llegó desde esa lista); un desglose, de Meses si la medida es del mes y del Resumen si no. «Cómo se calcula» y
- * los errores no marcan ninguna.
+ * La sección que queda marcada, siempre la misma que dice la primera miga (`migasDe`). Un cliente cuelga de Clientes; un comprobante, de Clientes, o, si se
+ * llegó con `origen`, de la sección de esa pantalla (Comprobantes, Meses o el Resumen); un desglose, de Meses si la medida es del mes y del Resumen si no.
+ * «Cómo se calcula» y los errores no marcan ninguna.
  */
-export function seccionDe(ruta: Ruta, desdeComprobantes = false): Seccion | null {
+export function seccionDe(ruta: Ruta, origen: OrigenDeComprobante | null = null): Seccion | null {
   switch (ruta.tipo) {
     case "resumen":
     case "comprobantes":
@@ -34,7 +37,7 @@ export function seccionDe(ruta: Ruta, desdeComprobantes = false): Seccion | null
     case "meses":
       return ruta.tipo;
     case "comprobante":
-      return desdeComprobantes ? "comprobantes" : "clientes";
+      return origen === null ? "clientes" : seccionDe(origen);
     case "cliente":
       return "clientes";
     case "desglose":
@@ -80,13 +83,13 @@ const RESUMEN: RutaNavegable = { tipo: "resumen" };
 /**
  * El camino hasta la pantalla (diseno-ui, sección 4; la miga del desglose de una medida del mes cuelga de Meses, no del Resumen):
  * - una raíz, «Cómo se calcula» o un error: un solo paso;
- * - un cliente: Clientes → cliente; un comprobante: Clientes → su cliente → comprobante, o, si se llegó desde la lista de Comprobantes
- *   (`desdeComprobantes`), Comprobantes → comprobante;
+ * - un cliente: Clientes → cliente; un comprobante: Clientes → su cliente → comprobante, o, si se llegó desde otra pantalla (`origen`), el camino de esa
+ *   pantalla → comprobante: Comprobantes → comprobante, o el de un desglose (que termina en la miga que lleva de vuelta a ese mismo desglose);
  * - un desglose: Resumen o Meses → desglose; con `cliente=`, → el cliente. La miga del desglose lleva al desglose de todos (con su mes, sin `cliente=`
  *   ni `agrupar`).
  * `corte` solo sirve para saber qué mes muestra el desglose de una medida del mes cuando la dirección no trae `mes=`.
  */
-export function migasDe(ruta: Ruta, datos: Pick<Datos, "comprobantes">, corte: FechaCivil, desdeComprobantes = false): PasoDeMigas[] {
+export function migasDe(ruta: Ruta, datos: Pick<Datos, "comprobantes">, corte: FechaCivil, origen: OrigenDeComprobante | null = null): PasoDeMigas[] {
   switch (ruta.tipo) {
     case "resumen":
     case "comprobantes":
@@ -101,12 +104,20 @@ export function migasDe(ruta: Ruta, datos: Pick<Datos, "comprobantes">, corte: F
     case "cliente":
       return [paso({ que: "seccion", seccion: "clientes" }, { tipo: "clientes" }), paso({ que: "cliente", clienteId: ruta.clienteId }, null)];
     case "comprobante": {
-      if (desdeComprobantes) return [paso({ que: "seccion", seccion: "comprobantes" }, { tipo: "comprobantes" }), paso({ que: "comprobante", comprobanteId: ruta.comprobanteId }, null)];
+      const actual = paso({ que: "comprobante", comprobanteId: ruta.comprobanteId }, null);
+      if (origen?.tipo === "comprobantes") return [paso({ que: "seccion", seccion: "comprobantes" }, { tipo: "comprobantes" }), actual];
+      if (origen?.tipo === "desglose") {
+        // El camino del desglose, con su último paso (que era la pantalla actual y no llevaba a ningún lado) apuntando al desglose del que se salió.
+        const delDesglose = migasDe(origen, datos, corte);
+        const ultimo = delDesglose.pop();
+        if (ultimo === undefined) return [actual];
+        return [...delDesglose, paso(ultimo.miga, origen), actual];
+      }
       const clienteId = datos.comprobantes.find((c) => c.id === ruta.comprobanteId)?.clienteId;
       const pasos = [paso({ que: "seccion", seccion: "clientes" }, { tipo: "clientes" })];
       // Un comprobante que no está en los datos no puede pasar por el enrutador; si llega una ruta armada a mano, no se inventa un cliente.
       if (clienteId !== undefined) pasos.push(paso({ que: "cliente", clienteId }, { tipo: "cliente", clienteId }));
-      pasos.push(paso({ que: "comprobante", comprobanteId: ruta.comprobanteId }, null));
+      pasos.push(actual);
       return pasos;
     }
     case "desglose": {
@@ -125,7 +136,7 @@ function paso(miga: Miga, destino: RutaNavegable | null): PasoDeMigas {
 }
 
 /** A dónde vuelve «Atrás» cuando no hay una pantalla anterior en la pila (un enlace directo): la miga anterior, o el Resumen. */
-export function padreDe(ruta: Ruta, datos: Pick<Datos, "comprobantes">, corte: FechaCivil, desdeComprobantes = false): RutaNavegable {
-  const pasos = migasDe(ruta, datos, corte, desdeComprobantes);
+export function padreDe(ruta: Ruta, datos: Pick<Datos, "comprobantes">, corte: FechaCivil, origen: OrigenDeComprobante | null = null): RutaNavegable {
+  const pasos = migasDe(ruta, datos, corte, origen);
   return pasos.at(-2)?.destino ?? RESUMEN;
 }

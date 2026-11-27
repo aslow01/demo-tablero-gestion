@@ -14,7 +14,8 @@ import { clavesExistentes } from "../dominio/medidas.ts";
 import type { Datos, FechaCivil } from "../dominio/tipos.ts";
 import { aHash, esAncla, esNavegable, idDeVista, resolverDireccion } from "./enrutador.ts";
 import type { AvisoDeDireccion, Direccion, Ruta, RutaNavegable } from "./enrutador.ts";
-import { esRaiz, llegoDesdeComprobantes, migasDe, padreDe, seccionDe } from "./navegacion.ts";
+import { esRaiz, migasDe, origenDeComprobante, padreDe, seccionDe } from "./navegacion.ts";
+import type { OrigenDeComprobante } from "./navegacion.ts";
 import type { PasoDeMigas, Seccion } from "./navegacion.ts";
 import type { Ubicacion } from "./ubicacion.ts";
 
@@ -121,12 +122,20 @@ export function crearEstadoDeDireccion(datos: Datos, ubicacion: Ubicacion, opcio
   // `$derived` y no un getter sobre `direccion`: un efecto que lee la vista (o la sección) solo se vuelve a correr si cambia el valor, no con cada dirección
   // nueva. Es lo que impide que escribir en el buscador mueva el foco (R2).
   const vista = $derived(idDeVista(direccion.ruta));
-  // Un comprobante cuelga de la lista de la que se salió (Comprobantes) o, si no hay origen (un enlace directo), de Clientes. La sección que marca el menú y
-  // las migas salen de lo mismo, así que no pueden contradecirse. Es un booleano: escribir en un campo (que cambia el último elemento del recorrido) no lo mueve.
-  const desdeComprobantes = $derived(
-    direccion.ruta.tipo === "comprobante" && llegoDesdeComprobantes(recorrido.slice(0, -1).map((hash) => resolverDireccion(hash, datos).ruta)),
-  );
-  const seccion = $derived(seccionDe(direccion.ruta, desdeComprobantes));
+  // Un comprobante cuelga de la pantalla de la que se salió (la lista de Comprobantes o un desglose) o, si no hay origen (un enlace directo), de Clientes. La
+  // sección que marca el menú y las migas salen de lo mismo, así que no pueden contradecirse. Primero se calcula la dirección del origen (un texto, o `null`)
+  // y de ahí la ruta: así escribir en un campo (que cambia el último elemento del recorrido) no mueve nada, porque el texto no cambia.
+  const hashDelOrigen = $derived.by(() => {
+    if (direccion.ruta.tipo !== "comprobante") return null;
+    const origen = origenDeComprobante(recorrido.slice(0, -1).map((hash) => resolverDireccion(hash, datos).ruta));
+    return origen === null ? null : aHash(origen, direccion.corte);
+  });
+  const origen = $derived.by((): OrigenDeComprobante | null => {
+    if (hashDelOrigen === null) return null;
+    const ruta = resolverDireccion(hashDelOrigen, datos).ruta;
+    return ruta.tipo === "comprobantes" || ruta.tipo === "desglose" ? ruta : null;
+  });
+  const seccion = $derived(seccionDe(direccion.ruta, origen));
   const raiz = $derived(esRaiz(direccion.ruta));
 
   /** Suma la dirección actual al recorrido, o saca la última si se volvió a la anterior. */
@@ -199,7 +208,7 @@ export function crearEstadoDeDireccion(datos: Datos, ubicacion: Ubicacion, opcio
 
   /** El padre de la ruta actual (el Resumen si la ruta es un error). */
   function padre(): RutaNavegable {
-    return padreDe(direccion.ruta, datos, direccion.corte, desdeComprobantes);
+    return padreDe(direccion.ruta, datos, direccion.corte, origen);
   }
 
   /** La pantalla anterior del recorrido si la hay y es una ruta válida; si no (un enlace directo, o venía de un error), `null`. */
@@ -234,7 +243,7 @@ export function crearEstadoDeDireccion(datos: Datos, ubicacion: Ubicacion, opcio
       return raiz;
     },
     get migas() {
-      return migasDe(direccion.ruta, datos, direccion.corte, desdeComprobantes);
+      return migasDe(direccion.ruta, datos, direccion.corte, origen);
     },
     get padre() {
       return padre();

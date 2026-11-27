@@ -481,7 +481,54 @@ describe("lo que lee el marco de la navegación: sección, raíz, padre y migas"
       expect(estado.migas.map((p) => p.miga.que)).toEqual(["seccion", "cliente", "comprobante"]);
     });
 
-    it("desde un cliente, un desglose o el Resumen: Clientes, como la miga", () => {
+    describe("desde un desglose: la miga y el menú dicen Resumen > desglose > comprobante", () => {
+      it("el desglose de toda la empresa: el menú marca Resumen, la miga es Resumen → En mora → comprobante y «Atrás» vuelve al desglose", () => {
+        const { estado } = arrancar("#/desglose/mora?corte=2026-10-31");
+        estado.ir({ tipo: "comprobante", comprobanteId: id });
+        expect(estado.seccion).toBe("resumen");
+        expect(estado.migas.map((p) => p.miga)).toEqual([
+          { que: "seccion", seccion: "resumen" },
+          { que: "desglose", clave: "mora" },
+          { que: "comprobante", comprobanteId: id },
+        ]);
+        expect(estado.padre).toEqual({ tipo: "desglose", clave: "mora" });
+        estado.atras();
+        expect([estado.ruta.tipo, estado.seccion]).toEqual(["desglose", "resumen"]);
+      });
+
+      it("el desglose de un cliente: Resumen → En mora → cliente → comprobante, y «Atrás» vuelve al desglose filtrado", () => {
+        const { estado } = arrancar("#/desglose/mora?corte=2026-10-31&cliente=C05");
+        estado.ir({ tipo: "comprobante", comprobanteId: id });
+        expect(estado.seccion).toBe("resumen");
+        expect(estado.migas.map((p) => p.miga.que)).toEqual(["seccion", "desglose", "cliente", "comprobante"]);
+        expect(primera(estado)).toEqual({ que: "seccion", seccion: "resumen" });
+        expect(estado.destinoDeAtras).toEqual({ tipo: "desglose", clave: "mora", clienteId: "C05" });
+        estado.atras();
+        expect(estado.ruta).toEqual({ tipo: "desglose", clave: "mora", clienteId: "C05" });
+      });
+
+      it("una medida del mes: el menú marca Meses", () => {
+        const { estado } = arrancar("#/desglose/facturacion-mes?corte=2026-10-31");
+        estado.ir({ tipo: "comprobante", comprobanteId: id });
+        expect([estado.seccion, primera(estado)]).toEqual(["meses", { que: "seccion", seccion: "meses" }]);
+      });
+
+      it("con un enlace directo a ese comprobante (sin origen) sigue siendo Clientes", () => {
+        const { estado } = arrancar(`#/comprobante/${id}?corte=2026-10-31`);
+        expect([estado.seccion, primera(estado)]).toEqual(["clientes", { que: "seccion", seccion: "clientes" }]);
+      });
+
+      it("pasar por el cliente del comprobante y abrir otro comprobante conserva el origen", () => {
+        const { estado } = arrancar("#/desglose/mora?corte=2026-10-31");
+        estado.ir({ tipo: "comprobante", comprobanteId: id });
+        estado.ir({ tipo: "cliente", clienteId: "C05" });
+        expect(estado.seccion).toBe("clientes");
+        estado.ir({ tipo: "comprobante", comprobanteId: id });
+        expect([estado.seccion, primera(estado)]).toEqual(["resumen", { que: "seccion", seccion: "resumen" }]);
+      });
+    });
+
+    it("desde un cliente o el Resumen: Clientes, como la miga", () => {
       for (const origen of ["#/clientes?corte=2026-10-31", "#/resumen?corte=2026-10-31", "#/meses?corte=2026-10-31"]) {
         const { estado } = arrancar(origen);
         estado.ir({ tipo: "comprobante", comprobanteId: id });

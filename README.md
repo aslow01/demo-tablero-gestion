@@ -95,9 +95,9 @@ Node 24. `npm ci` y después:
 
 | Qué | Resultado |
 | --- | --- |
-| Pruebas | 2.262 en 59 archivos, en verde también en UTC, Asia/Tokyo y America/Los_Angeles |
+| Pruebas | 2.273 en 59 archivos, en verde también en UTC, Asia/Tokyo y America/Los_Angeles |
 | Mutaciones plantadas | 60 de 60 detectadas (corrida del 26/11/2026: 6 min 49 s; ver `docs/registro.md`) |
-| JavaScript | 82,0 kB con gzip (tope: 100 kB), con una sola dependencia directa de producción (`svelte`) |
+| JavaScript | 82,1 kB con gzip (tope: 100 kB), con una sola dependencia directa de producción (`svelte`) |
 | CSS | 13,6 kB con gzip |
 | Tipografías | 201 kB (`woff2`, alojadas en el propio sitio; licencias OFL junto a los archivos) |
 | Contraste | 206 mediciones, 0 fallan, 6 justas |

@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import { CLAVES_DEL_CATALOGO } from "../src/lib/dominio/claves.ts";
 import type { Ruta, RutaNavegable } from "../src/lib/estado/enrutador.ts";
 import { aHash, resolverDireccion } from "../src/lib/estado/enrutador.ts";
-import { esRaiz, llegoDesdeComprobantes, migasDe, ofreceAyudaEnLaBarra, padreDe, seccionDe, SECCIONES } from "../src/lib/estado/navegacion.ts";
+import { esRaiz, migasDe, ofreceAyudaEnLaBarra, origenDeComprobante, padreDe, seccionDe, SECCIONES } from "../src/lib/estado/navegacion.ts";
+import type { OrigenDeComprobante } from "../src/lib/estado/navegacion.ts";
 import { fixtureT12 } from "./fixtures/casos.ts";
 
 const T12 = fixtureT12();
@@ -34,13 +35,22 @@ describe("seccionDe: qué pestaña queda marcada", () => {
   it("un comprobante cuelga de Clientes, igual que dice su miga; si se llegó desde Comprobantes, queda marcado Comprobantes", () => {
     const ruta = { tipo: "comprobante", comprobanteId: idFactura } as const;
     expect(seccionDe(ruta)).toBe("clientes");
-    expect(seccionDe(ruta, false)).toBe("clientes");
-    expect(seccionDe(ruta, true)).toBe("comprobantes");
+    expect(seccionDe(ruta, null)).toBe("clientes");
+    expect(seccionDe(ruta, { tipo: "comprobantes" })).toBe("comprobantes");
+  });
+
+  it("un comprobante al que se llegó desde un desglose cuelga de la sección de ese desglose: el Resumen, o Meses si la medida es del mes", () => {
+    const ruta = { tipo: "comprobante", comprobanteId: idFactura } as const;
+    expect(seccionDe(ruta, { tipo: "desglose", clave: "mora" })).toBe("resumen");
+    expect(seccionDe(ruta, { tipo: "desglose", clave: "mora", clienteId: "C05" })).toBe("resumen");
+    expect(seccionDe(ruta, { tipo: "desglose", clave: "facturacion-mes", mes: "2026-05" })).toBe("meses");
   });
 
   it("el origen solo cambia al comprobante: lo demás no se mueve", () => {
-    for (const ruta of [resumen, clientes, meses, { tipo: "cliente", clienteId: "C05" }, { tipo: "desglose", clave: "mora" }, { tipo: "como-se-calcula" }] as const) {
-      expect(seccionDe(ruta, true), ruta.tipo).toBe(seccionDe(ruta));
+    for (const origen of [{ tipo: "comprobantes" }, { tipo: "desglose", clave: "mora" }] as const) {
+      for (const ruta of [resumen, clientes, meses, { tipo: "cliente", clienteId: "C05" }, { tipo: "desglose", clave: "mora" }, { tipo: "como-se-calcula" }] as const) {
+        expect(seccionDe(ruta, origen), ruta.tipo).toBe(seccionDe(ruta));
+      }
     }
   });
 
@@ -114,20 +124,61 @@ describe("migasDe: el camino hasta la pantalla, sin texto", () => {
 
   it("un comprobante al que se llegó desde Comprobantes cuelga de Comprobantes: la miga dice por dónde se llegó, igual que el menú", () => {
     const comprobante = { tipo: "comprobante", comprobanteId: idFactura } as const;
-    const desdeComprobantes = migasDe(comprobante, datos, corte, true);
+    const origen: OrigenDeComprobante = { tipo: "comprobantes", tramo: "vencidos" };
+    const desdeComprobantes = migasDe(comprobante, datos, corte, origen);
     expect(desdeComprobantes).toEqual([
       { miga: { que: "seccion", seccion: "comprobantes" }, destino: { tipo: "comprobantes" } },
       { miga: { que: "comprobante", comprobanteId: idFactura }, destino: null },
     ]);
-    expect(desdeComprobantes[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante, true) });
+    expect(desdeComprobantes[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante, origen) });
     // Sin origen (un enlace directo) o desde otro lado, la miga de siempre.
-    expect(migasDe(comprobante, datos, corte, false)).toEqual(migasDe(comprobante, datos, corte));
+    expect(migasDe(comprobante, datos, corte, null)).toEqual(migasDe(comprobante, datos, corte));
     expect(migasDe(comprobante, datos, corte)[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante) });
   });
 
+  it("un comprobante al que se llegó desde el desglose de toda la empresa cuelga de ese desglose: Resumen → desglose → comprobante", () => {
+    const comprobante = { tipo: "comprobante", comprobanteId: idFactura } as const;
+    const origen: OrigenDeComprobante = { tipo: "desglose", clave: "mora" };
+    const pasos = migasDe(comprobante, datos, corte, origen);
+    expect(pasos).toEqual([
+      { miga: { que: "seccion", seccion: "resumen" }, destino: resumen },
+      { miga: { que: "desglose", clave: "mora" }, destino: origen },
+      { miga: { que: "comprobante", comprobanteId: idFactura }, destino: null },
+    ]);
+    expect(pasos[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante, origen) });
+  });
+
+  it("desde el desglose de un cliente: Resumen → desglose de todos → cliente (vuelve al desglose filtrado) → comprobante", () => {
+    const comprobante = { tipo: "comprobante", comprobanteId: idFactura } as const;
+    const origen: OrigenDeComprobante = { tipo: "desglose", clave: "mora", clienteId: "C05", agrupar: "no" };
+    const pasos = migasDe(comprobante, datos, corte, origen);
+    expect(pasos).toEqual([
+      { miga: { que: "seccion", seccion: "resumen" }, destino: resumen },
+      { miga: { que: "desglose", clave: "mora" }, destino: { tipo: "desglose", clave: "mora" } },
+      { miga: { que: "cliente", clienteId: "C05" }, destino: origen },
+      { miga: { que: "comprobante", comprobanteId: idFactura }, destino: null },
+    ]);
+    expect(pasos[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante, origen) });
+  });
+
+  it("desde el desglose de una medida del mes: cuelga de Meses y la miga lleva el mes", () => {
+    const comprobante = { tipo: "comprobante", comprobanteId: idFactura } as const;
+    const origen: OrigenDeComprobante = { tipo: "desglose", clave: "facturacion-mes", mes: "2026-05" };
+    const pasos = migasDe(comprobante, datos, corte, origen);
+    expect(pasos.map((p) => p.miga)).toEqual([
+      { que: "seccion", seccion: "meses" },
+      { que: "desglose", clave: "facturacion-mes", mes: "2026-05" },
+      { que: "comprobante", comprobanteId: idFactura },
+    ]);
+    expect(pasos[0]?.miga).toEqual({ que: "seccion", seccion: seccionDe(comprobante, origen) });
+    expect(pasos[1]?.destino).toEqual(origen);
+  });
+
   it("el origen no cambia las migas de las demás pantallas", () => {
-    for (const ruta of [resumen, clientes, { tipo: "cliente", clienteId: "C05" }, { tipo: "desglose", clave: "mora", clienteId: "C05" }, { tipo: "como-se-calcula" }] as const) {
-      expect(migasDe(ruta, datos, corte, true), ruta.tipo).toEqual(migasDe(ruta, datos, corte));
+    for (const origen of [{ tipo: "comprobantes" }, { tipo: "desglose", clave: "mora" }] as const) {
+      for (const ruta of [resumen, clientes, { tipo: "cliente", clienteId: "C05" }, { tipo: "desglose", clave: "mora", clienteId: "C05" }, { tipo: "como-se-calcula" }] as const) {
+        expect(migasDe(ruta, datos, corte, origen), ruta.tipo).toEqual(migasDe(ruta, datos, corte));
+      }
     }
   });
 
@@ -200,7 +251,13 @@ describe("padreDe: a dónde va «Atrás» cuando no hay una pantalla anterior", 
   });
 
   it("un comprobante al que se llegó desde Comprobantes vuelve a Comprobantes", () => {
-    expect(padreDe({ tipo: "comprobante", comprobanteId: idFactura }, datos, corte, true)).toEqual({ tipo: "comprobantes" });
+    expect(padreDe({ tipo: "comprobante", comprobanteId: idFactura }, datos, corte, { tipo: "comprobantes" })).toEqual({ tipo: "comprobantes" });
+  });
+
+  it("un comprobante al que se llegó desde un desglose vuelve a ese desglose, con su filtro", () => {
+    const comprobante = { tipo: "comprobante", comprobanteId: idFactura } as const;
+    expect(padreDe(comprobante, datos, corte, { tipo: "desglose", clave: "mora" })).toEqual({ tipo: "desglose", clave: "mora" });
+    expect(padreDe(comprobante, datos, corte, { tipo: "desglose", clave: "mora", clienteId: "C05" })).toEqual({ tipo: "desglose", clave: "mora", clienteId: "C05" });
   });
 
   it("el desglose de un cliente vuelve al desglose de todos, y conserva el mes", () => {
@@ -221,34 +278,43 @@ describe("padreDe: a dónde va «Atrás» cuando no hay una pantalla anterior", 
   });
 });
 
-describe("llegoDesdeComprobantes: de dónde se llegó a un comprobante, mirando el recorrido", () => {
+describe("origenDeComprobante: de dónde se llegó a un comprobante, mirando el recorrido", () => {
   const comprobante: Ruta = { tipo: "comprobante", comprobanteId: idFactura };
   const cliente: Ruta = { tipo: "cliente", clienteId: "C05" };
   const lista: Ruta = { tipo: "comprobantes", tramo: "vencidos" };
+  const desglose: Ruta = { tipo: "desglose", clave: "mora" };
+  const desgloseDeCliente: Ruta = { tipo: "desglose", clave: "mora", clienteId: "C05" };
 
-  it("la pantalla anterior es la lista de Comprobantes (con cualquier filtro): sí", () => {
-    expect(llegoDesdeComprobantes([resumen, lista])).toBe(true);
-    expect(llegoDesdeComprobantes([lista])).toBe(true);
+  it("la pantalla anterior es la lista de Comprobantes (con cualquier filtro): ese es el origen", () => {
+    expect(origenDeComprobante([resumen, lista])).toEqual(lista);
+    expect(origenDeComprobante([lista])).toEqual(lista);
   });
 
-  it("sin pantalla anterior (un enlace directo) o desde otra pantalla: no", () => {
-    expect(llegoDesdeComprobantes([])).toBe(false);
-    expect(llegoDesdeComprobantes([resumen])).toBe(false);
-    expect(llegoDesdeComprobantes([lista, clientes])).toBe(false);
-    expect(llegoDesdeComprobantes([lista, { tipo: "desglose", clave: "mora" }])).toBe(false);
-    expect(llegoDesdeComprobantes([lista, { tipo: "como-se-calcula" }])).toBe(false);
+  it("la pantalla anterior es un desglose (de toda la empresa o de un cliente): ese desglose es el origen", () => {
+    expect(origenDeComprobante([resumen, desglose])).toEqual(desglose);
+    expect(origenDeComprobante([resumen, desglose, desgloseDeCliente])).toEqual(desgloseDeCliente);
+    expect(origenDeComprobante([desgloseDeCliente])).toEqual(desgloseDeCliente);
   });
 
-  it("pasar por un cliente u otro comprobante no cambia el origen: sigue siendo el de la lista de la que se salió", () => {
-    expect(llegoDesdeComprobantes([lista, comprobante])).toBe(true);
-    expect(llegoDesdeComprobantes([lista, comprobante, cliente])).toBe(true);
-    expect(llegoDesdeComprobantes([clientes, cliente, comprobante])).toBe(false);
-    expect(llegoDesdeComprobantes([lista, clientes, cliente])).toBe(false);
+  it("sin pantalla anterior (un enlace directo) o desde otra pantalla: no hay origen", () => {
+    expect(origenDeComprobante([])).toBeNull();
+    expect(origenDeComprobante([resumen])).toBeNull();
+    expect(origenDeComprobante([lista, clientes])).toBeNull();
+    expect(origenDeComprobante([lista, { tipo: "como-se-calcula" }])).toBeNull();
+    expect(origenDeComprobante([desglose, { tipo: "inexistente", vista: "cliente" }])).toBeNull();
   });
 
-  it("solo hay detalles antes (por ejemplo, la dirección con la que se arrancó era un cliente): no", () => {
-    expect(llegoDesdeComprobantes([cliente])).toBe(false);
-    expect(llegoDesdeComprobantes([cliente, comprobante])).toBe(false);
+  it("pasar por un cliente u otro comprobante no cambia el origen: sigue siendo la pantalla de la que se salió", () => {
+    expect(origenDeComprobante([lista, comprobante])).toEqual(lista);
+    expect(origenDeComprobante([lista, comprobante, cliente])).toEqual(lista);
+    expect(origenDeComprobante([desglose, cliente, comprobante])).toEqual(desglose);
+    expect(origenDeComprobante([clientes, cliente, comprobante])).toBeNull();
+    expect(origenDeComprobante([lista, clientes, cliente])).toBeNull();
+  });
+
+  it("solo hay detalles antes (por ejemplo, la dirección con la que se arrancó era un cliente): no hay origen", () => {
+    expect(origenDeComprobante([cliente])).toBeNull();
+    expect(origenDeComprobante([cliente, comprobante])).toBeNull();
   });
 });
 

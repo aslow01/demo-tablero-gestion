@@ -402,9 +402,16 @@ Dos variantes del mismo aviso (5.12): corte inválido (S5) y, en el Desglose de 
   < 40rem se muestra **solo la miga anterior** como "‹ {nombre}" (enlace, 44 px de alto). Son para **subir**:
   - Cliente: "Resumen / {Cliente}".
   - Comprobante: "Resumen / {Cliente} / {Comprobante}" (el comprobante es del cliente: subir al cliente es subir).
-    Si se llegó desde la lista de Comprobantes: "Comprobantes / {Comprobante}". El menú marca la misma sección que dice la
-    primera miga (Comprobantes en ese caso; Clientes si se llegó de otro lado o con un enlace directo, que no tiene origen).
+    Si se llegó desde la lista de Comprobantes: "Comprobantes / {Comprobante}". Si se llegó desde un desglose (un clic en
+    una partida): el camino de ese desglose y el comprobante, "Resumen / {Título corto} / {Comprobante}" (con `cliente=`:
+    "Resumen / {Título corto} / {Cliente} / {Comprobante}"; con una medida del mes, "Meses / …"); la miga de ese desglose
+    lleva de vuelta a él, con su filtro. El menú marca la misma sección que dice la primera miga (Comprobantes, Resumen
+    o Meses en esos casos; Clientes si se llegó de otro lado o con un enlace directo, que no tiene origen).
     El origen se mira en el recorrido de la sesión, saltando clientes y comprobantes; se pierde al recargar.
+    Límites conocidos: (1) si se abre un comprobante desde un desglose, se va a la lista de Comprobantes con el menú y se
+    abre el mismo comprobante, el recorrido lo toma como un «Atrás» y la miga sigue mostrando el desglose de antes; (2) si
+    el origen es el desglose de «Otros» y desde el comprobante se cambia a un cierre que no tiene «Otros», la miga y el
+    menú pasan a Clientes.
   - Desglose de toda la empresa: "Resumen / {Título corto de la medida}" ("En mora").
   - Desglose con `cliente=`: "Resumen / {Título corto} / {Cliente}": la miga del medio lleva al **mismo desglose sin el
     filtro** (es el nivel de arriba); el nombre del cliente en la bajada lleva a la vista Cliente (regla de la sección 2).

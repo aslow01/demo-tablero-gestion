@@ -568,3 +568,13 @@ Rama `tanda4-pre`. Fuente: la revisión previa a hacer pública la demo.
 - **Menores.** La columna de la barra de tramos en Clientes se llama «Saldo según atraso» (no tiene números). El panel «Para revisar» dice «2 recibos» en lugar de un «2» suelto. «Otros (1 cliente)» **no se cambió**: `diseno-ui.md` 5.9.1 registra que, con un solo cliente, no se muestra su nombre en lugar de «Otros» (decisión del 25/11/2026); cambiarlo es cambiar esa decisión.
 - **README.** Cifras al día (2.240 pruebas, JS 81,8 kB), sección «Arquitectura» con orden de lectura, aviso de que `docs/` son notas de trabajo, párrafo de View Transitions más corto y «Quién hizo qué» sin jerga.
 - Pruebas: 2.239 → 2.240 (+1), también en las tres zonas horarias. `check` 0 errores; `buscar` sin hallazgos; JS 81.813 B con gzip; contraste 206 mediciones, 0 fallan.
+
+## 27/11/2026 — Miga y menú al abrir un comprobante desde un desglose, y robots.txt (propuestas por IA)
+
+Rama `miga-desglose`.
+
+- **Miga y menú desde un desglose.** Al abrir un comprobante desde un desglose (por ejemplo, Resumen, el monto «En mora» de un cliente y una partida), la miga y el menú dicen de dónde se vino: Resumen / En mora / {Cliente} / {Comprobante}, con el menú en Resumen (en Meses si la medida es del mes). Antes decían Clientes. «Atrás» vuelve al desglose con su filtro. Con un enlace directo al comprobante no cambia nada (Clientes / cliente / comprobante). En `navegacion.ts`, `origenDeComprobante` reemplaza a `llegoDesdeComprobantes`, y `seccionDe`, `migasDe` y `padreDe` reciben el origen; `direccion.svelte.ts` lo saca del recorrido de la sesión. `diseno-ui.md`, sección 4.4, al día.
+- **`robots.txt`.** Nuevo, en `public/`: permite a todos los rastreadores. El servidor local (`scripts/servir-dist.mjs`) sirve `.txt` como `text/plain`.
+- **Tras la revisión.** Ningún hallazgo bloqueante ni importante. Se dejaron anotados como límites conocidos en `diseno-ui.md` 4.4 dos casos raros de la miga (reabrir el mismo comprobante desde la lista de Comprobantes, que el recorrido toma como un «Atrás»; y cambiar a un cierre sin «Otros» estando en un comprobante abierto desde ese desglose). Sin cambio de código: el primero ya existía y el segundo pide decidir cómo guardar el origen.
+- **Sin corregir, por ser de presentación o de decisión de diseño:** que la miga omita el paso por el cliente (desglose, cliente, comprobante), el «/» que queda al inicio del renglón cuando la miga de cuatro niveles se parte, el rótulo largo de «Atrás» en el celular y el nombre accesible del eslabón del cliente (lleva al desglose filtrado, no a la ficha).
+- Pruebas: 2.262 → 2.273 (+11). `check` 0 errores; `buscar` sin hallazgos; JS 82.075 B con gzip (82,1 kB); contraste 206 mediciones, 0 fallan.

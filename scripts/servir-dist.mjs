@@ -1,5 +1,5 @@
 // Copiado de la Demo 2 (Control de flota, del mismo autor, MIT): scripts/servir-dist.mjs.
-// Cambios: conoce `.woff2` (las tipografías van alojadas en el propio sitio, `font-src 'self'`), `.woff` y `.png` (la imagen de vista previa para redes): los archivos se sirven con su tipo, como lo hace Cloudflare Pages, y no como `application/octet-stream`.
+// Cambios: conoce `.woff2` (las tipografías van alojadas en el propio sitio, `font-src 'self'`), `.woff`, `.png` (la imagen de vista previa para redes) y `.txt` (`robots.txt`): los archivos se sirven con su tipo, como lo hace Cloudflare Pages, y no como `application/octet-stream`.
 // Sirve `dist/` con las cabeceras de `public/_headers` (la misma CSP que va a aplicar Cloudflare Pages).
 // Es solo para verificar a mano o con un navegador: sin dependencias, solo escucha en 127.0.0.1.
 // Uso: npm run build && node scripts/servir-dist.mjs [puerto]
@@ -25,6 +25,7 @@ const tipos = {
   ".css": "text/css; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".txt": "text/plain; charset=utf-8",
   ".woff2": "font/woff2",
   ".woff": "font/woff",
   ".json": "application/json; charset=utf-8",
