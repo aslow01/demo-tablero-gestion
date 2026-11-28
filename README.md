@@ -65,7 +65,7 @@ Criterio de la semilla: se eligió para que la muestra tenga más de cinco deudo
 
 ## Quién hizo qué
 
-Concebido, diseñado y dirigido por **Matías Ariel Ormeño**; desarrollado con IA (modelos de Anthropic, en distintos roles: diseño de interfaz, redacción, programación, maquetación, revisión de código, pruebas destructivas y accesibilidad), bajo su dirección. Programa desde 2014; hoy diseña los sistemas y dirige su desarrollo con IA.
+Concebido, diseñado y dirigido por **Matías Ariel Ormeño**; desarrollado con IA (modelos de Anthropic, en distintos roles: diseño de interfaz, redacción, programación, maquetación, revisión de código, pruebas destructivas y accesibilidad), bajo su dirección. Hoy diseña los sistemas y dirige su desarrollo con IA.
 
 Dos decisiones de fondo son suyas y puede explicarlas:
 
